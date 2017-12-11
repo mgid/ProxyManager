@@ -66,7 +66,7 @@ abstract class AbstractBaseFactory
             ->getClassNameInflector()
             ->getProxyClassName($className, $proxyParameters);
 
-        if (! class_exists($proxyClassName)) {
+        if (! class_exists($proxyClassName, false)) {
             $this->generateProxyClass(
                 $proxyClassName,
                 $className,

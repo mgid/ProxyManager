@@ -1,31 +1,18 @@
 <?php
-/*
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * This software consists of voluntary contributions made by many individuals
- * and is licensed under the MIT license.
- */
 
 declare(strict_types=1);
 
 namespace ProxyManagerTest\GeneratorStrategy;
 
-use PHPUnit_Framework_TestCase;
+use PHPUnit\Framework\TestCase;
+use ProxyManager\Autoloader\AutoloaderInterface;
+use ProxyManager\Configuration;
 use ProxyManager\Exception\FileNotWritableException;
 use ProxyManager\FileLocator\FileLocatorInterface;
 use ProxyManager\Generator\ClassGenerator;
 use ProxyManager\Generator\Util\UniqueIdentifierGenerator;
 use ProxyManager\GeneratorStrategy\FileWriterGeneratorStrategy;
+use ProxyManager\ProxyGenerator\ProxyGeneratorInterface;
 
 /**
  * Tests for {@see \ProxyManager\GeneratorStrategy\FileWriterGeneratorStrategy}
@@ -38,7 +25,7 @@ use ProxyManager\GeneratorStrategy\FileWriterGeneratorStrategy;
  *
  * Note: this test generates temporary files that are not deleted
  */
-class FileWriterGeneratorStrategyTest extends PHPUnit_Framework_TestCase
+class FileWriterGeneratorStrategyTest extends TestCase
 {
     public function testGenerate() : void
     {
@@ -145,5 +132,118 @@ class FileWriterGeneratorStrategyTest extends PHPUnit_Framework_TestCase
 
             self::assertEquals(['.', '..'], scandir($tmpDirPath));
         }
+    }
+
+    public function testClassNotExistsException(): void
+    {
+        /* @var $locator FileLocatorInterface|\PHPUnit_Framework_MockObject_MockObject */
+        $locator   = $this->createMock(FileLocatorInterface::class);
+        $generator = new FileWriterGeneratorStrategy($locator);
+        $namespace = 'Foo';
+        $className = UniqueIdentifierGenerator::getIdentifier('Bar');
+        $fqcn      = $namespace . '\\' . $className;
+        $proxyClassName = $fqcn;
+        $proxyFolder = sys_get_temp_dir() . '/';
+        $tmpFile   = $proxyFolder . $namespace . $className . '.php';
+        $configuration = $this->createMock(Configuration::class);
+        $proxyAutoloader = $this->createMock(AutoloaderInterface::class);
+
+        $configuration
+            ->expects(self::any())
+            ->method('getProxyAutoloader')
+            ->will(self::returnValue($proxyAutoloader));
+
+        $configuration
+            ->expects(self::any())
+            ->method('getProxiesTargetDir')
+            ->willReturn($proxyFolder);
+
+        $proxyAutoloader
+            ->expects(self::once())
+            ->method('__invoke')
+            ->with($proxyClassName)
+            ->will(self::returnCallback(function ($className) : bool {
+                // We does not include file here.
+                return true;
+            }));
+
+        spl_autoload_register(function ($name) use ($fqcn) {
+            if ($name === $fqcn) {
+                throw new \Exception(sprintf("Cannot load class %s", $name));
+            }
+        });
+
+        $locator
+            ->expects(self::any())
+            ->method('getProxyFileName')
+            ->with($fqcn)
+            ->will(self::returnValue($tmpFile));
+
+        $body = $generator->generate(new ClassGenerator($fqcn));
+
+
+        self::assertFileExists($tmpFile);
+        self::expectException(\Exception::class);
+        self::expectExceptionMessage(sprintf("Cannot load class %s", $fqcn));
+        $generator->classExists($proxyClassName, $configuration);
+        rmdir($tmpFile);
+    }
+
+    public function testClassNotExistsLoaded(): void
+    {
+        /* @var $locator FileLocatorInterface|\PHPUnit_Framework_MockObject_MockObject */
+        $locator   = $this->createMock(FileLocatorInterface::class);
+        $generator = new FileWriterGeneratorStrategy($locator);
+        $namespace = 'Foo';
+        $className = UniqueIdentifierGenerator::getIdentifier('Bar');
+        $fqcn      = $namespace . '\\' . $className;
+        $proxyClassName = $fqcn;
+        $proxyFolder = sys_get_temp_dir() . '/';
+        $tmpFile   = $proxyFolder . $namespace . $className . '.php';
+        $configuration = $this->createMock(Configuration::class);
+        $proxyAutoloader = $this->createMock(AutoloaderInterface::class);
+
+        $configuration
+            ->expects(self::any())
+            ->method('getProxyAutoloader')
+            ->will(self::returnValue($proxyAutoloader));
+
+        $configuration
+            ->expects(self::any())
+            ->method('getProxiesTargetDir')
+            ->willReturn($proxyFolder);
+
+        $proxyAutoloader
+            ->expects(self::once())
+            ->method('__invoke')
+            ->with($proxyClassName)
+            ->will(self::returnCallback(function ($className) use ($fqcn, $tmpFile) : bool {
+                if ($fqcn === $className) {
+                    /* @noinspection PhpIncludeInspection */
+                    /* @noinspection UsingInclusionOnceReturnValueInspection */
+                    require_once $tmpFile;
+                }
+
+                return true;
+            }));
+
+        spl_autoload_register(function ($name) use ($fqcn) {
+            if ($name === $fqcn) {
+                throw new \Exception(sprintf("Cannot load class %s", $name));
+            }
+        });
+
+        $locator
+            ->expects(self::any())
+            ->method('getProxyFileName')
+            ->with($fqcn)
+            ->will(self::returnValue($tmpFile));
+
+        $body = $generator->generate(new ClassGenerator($fqcn));
+
+
+        self::assertFileExists($tmpFile);
+        self::assertTrue($generator->classExists($proxyClassName, $configuration));
+        unlink($tmpFile);
     }
 }

@@ -1,26 +1,10 @@
 <?php
-/*
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * This software consists of voluntary contributions made by many individuals
- * and is licensed under the MIT license.
- */
 
 declare(strict_types=1);
 
 namespace ProxyManagerTest\Factory;
 
-use PHPUnit_Framework_TestCase;
+use PHPUnit\Framework\TestCase;
 use ProxyManager\Autoloader\AutoloaderInterface;
 use ProxyManager\Configuration;
 use ProxyManager\Factory\AccessInterceptorScopeLocalizerFactory;
@@ -43,7 +27,7 @@ use stdClass;
  *
  * @group Coverage
  */
-class AccessInterceptorScopeLocalizerFactoryTest extends PHPUnit_Framework_TestCase
+class AccessInterceptorScopeLocalizerFactoryTest extends TestCase
 {
     /**
      * @var \PHPUnit_Framework_MockObject_MockObject
@@ -116,6 +100,7 @@ class AccessInterceptorScopeLocalizerFactoryTest extends PHPUnit_Framework_TestC
     public function testWillSkipAutoGeneration() : void
     {
         $instance = new stdClass();
+        $generator      = $this->createMock(GeneratorStrategyInterface::class);
 
         $this
             ->inflector
@@ -124,14 +109,32 @@ class AccessInterceptorScopeLocalizerFactoryTest extends PHPUnit_Framework_TestC
             ->with('stdClass')
             ->will(self::returnValue(AccessInterceptorValueHolderMock::class));
 
-        $factory     = new AccessInterceptorScopeLocalizerFactory($this->config);
+        $generator
+            ->expects(self::once())
+            ->method('classExists')
+            ->with(
+                AccessInterceptorValueHolderMock::class,
+                $this->config
+            )
+            ->willReturn(true);
+     
+        $this->config->expects(self::any())->method('getGeneratorStrategy')->will(self::returnValue($generator));
+
+        $factory            = new AccessInterceptorScopeLocalizerFactory($this->config);
+
+        $prefixInterceptors = [function () {
+            self::fail('Not supposed to be called');
+        }];
+        $suffixInterceptors = [function () {
+            self::fail('Not supposed to be called');
+        }];
         /* @var $proxy AccessInterceptorValueHolderMock */
-        $proxy       = $factory->createProxy($instance, ['foo'], ['bar']);
+        $proxy              = $factory->createProxy($instance, $prefixInterceptors, $suffixInterceptors);
 
         self::assertInstanceOf(AccessInterceptorValueHolderMock::class, $proxy);
         self::assertSame($instance, $proxy->instance);
-        self::assertSame(['foo'], $proxy->prefixInterceptors);
-        self::assertSame(['bar'], $proxy->suffixInterceptors);
+        self::assertSame($prefixInterceptors, $proxy->prefixInterceptors);
+        self::assertSame($suffixInterceptors, $proxy->suffixInterceptors);
     }
 
     /**
@@ -195,13 +198,19 @@ class AccessInterceptorScopeLocalizerFactoryTest extends PHPUnit_Framework_TestC
         $this->signatureChecker->expects(self::atLeastOnce())->method('checkSignature');
         $this->classSignatureGenerator->expects(self::once())->method('addSignature')->will(self::returnArgument(0));
 
-        $factory     = new AccessInterceptorScopeLocalizerFactory($this->config);
+        $factory            = new AccessInterceptorScopeLocalizerFactory($this->config);
+        $prefixInterceptors = [function () {
+            self::fail('Not supposed to be called');
+        }];
+        $suffixInterceptors = [function () {
+            self::fail('Not supposed to be called');
+        }];
         /* @var $proxy AccessInterceptorValueHolderMock */
-        $proxy       = $factory->createProxy($instance, ['foo'], ['bar']);
+        $proxy              = $factory->createProxy($instance, $prefixInterceptors, $suffixInterceptors);
 
         self::assertInstanceOf($proxyClassName, $proxy);
         self::assertSame($instance, $proxy->instance);
-        self::assertSame(['foo'], $proxy->prefixInterceptors);
-        self::assertSame(['bar'], $proxy->suffixInterceptors);
+        self::assertSame($prefixInterceptors, $proxy->prefixInterceptors);
+        self::assertSame($suffixInterceptors, $proxy->suffixInterceptors);
     }
 }

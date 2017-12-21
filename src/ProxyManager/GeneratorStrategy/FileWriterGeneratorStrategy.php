@@ -20,6 +20,7 @@ declare(strict_types=1);
 
 namespace ProxyManager\GeneratorStrategy;
 
+use ProxyManager\Configuration;
 use ProxyManager\Exception\FileNotWritableException;
 use ProxyManager\FileLocator\FileLocatorInterface;
 use Zend\Code\Generator\ClassGenerator;
@@ -99,5 +100,23 @@ class FileWriterGeneratorStrategy implements GeneratorStrategyInterface
 
             throw FileNotWritableException::fromInvalidMoveOperation($tmpFileName, $location);
         }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function classExists(string $proxyClassName, Configuration $configuration): bool
+    {
+        $class = str_replace('\\', '', $proxyClassName);
+        $file = $configuration->getProxiesTargetDir() . $class . '.php';
+
+        if (!file_exists($file)) {
+            return false;
+        }
+
+        $autoloader = $configuration->getProxyAutoloader();
+        $autoloader($proxyClassName);
+
+        return class_exists($proxyClassName);
     }
 }

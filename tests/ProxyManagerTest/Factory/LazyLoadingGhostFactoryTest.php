@@ -1,26 +1,10 @@
 <?php
-/*
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * This software consists of voluntary contributions made by many individuals
- * and is licensed under the MIT license.
- */
 
 declare(strict_types=1);
 
 namespace ProxyManagerTest\Factory;
 
-use PHPUnit_Framework_TestCase;
+use PHPUnit\Framework\TestCase;
 use ProxyManager\Autoloader\AutoloaderInterface;
 use ProxyManager\Configuration;
 use ProxyManager\Factory\LazyLoadingGhostFactory;
@@ -40,7 +24,7 @@ use ProxyManagerTestAsset\LazyLoadingMock;
  *
  * @group Coverage
  */
-class LazyLoadingGhostFactoryTest extends PHPUnit_Framework_TestCase
+class LazyLoadingGhostFactoryTest extends TestCase
 {
     /**
      * @var \PHPUnit_Framework_MockObject_MockObject
@@ -112,6 +96,7 @@ class LazyLoadingGhostFactoryTest extends PHPUnit_Framework_TestCase
     public function testWillSkipAutoGeneration() : void
     {
         $className = UniqueIdentifierGenerator::getIdentifier('foo');
+        $generator      = $this->createMock(GeneratorStrategyInterface::class);
 
         $this
             ->inflector
@@ -120,7 +105,19 @@ class LazyLoadingGhostFactoryTest extends PHPUnit_Framework_TestCase
             ->with($className)
             ->will(self::returnValue(LazyLoadingMock::class));
 
+        $generator
+            ->expects(self::once())
+            ->method('classExists')
+            ->with(
+                LazyLoadingMock::class,
+                $this->config
+            )
+            ->willReturn(true);
+
+        $this->config->expects(self::any())->method('getGeneratorStrategy')->will(self::returnValue($generator));
+
         $factory     = new LazyLoadingGhostFactory($this->config);
+        
         $initializer = function () {
         };
         /* @var $proxy LazyLoadingMock */

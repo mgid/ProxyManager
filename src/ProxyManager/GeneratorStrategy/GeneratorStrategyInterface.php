@@ -20,6 +20,7 @@ declare(strict_types=1);
 
 namespace ProxyManager\GeneratorStrategy;
 
+use ProxyManager\Configuration;
 use Zend\Code\Generator\ClassGenerator;
 
 /**
@@ -38,4 +39,13 @@ interface GeneratorStrategyInterface
      * @return string the class body
      */
     public function generate(ClassGenerator $classGenerator) : string;
+
+    /**
+     * Some autoloader can trow exception on function autoload,
+     * so class_exists() function need additional checks.
+     * @param string $proxyClassName
+     * @param Configuration $configuration
+     * @return bool
+     */
+    public function classExists(string $proxyClassName, Configuration $configuration): bool;
 }

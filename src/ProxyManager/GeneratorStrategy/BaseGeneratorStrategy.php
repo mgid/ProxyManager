@@ -20,6 +20,7 @@ declare(strict_types=1);
 
 namespace ProxyManager\GeneratorStrategy;
 
+use ProxyManager\Configuration;
 use Zend\Code\Generator\ClassGenerator;
 
 /**
@@ -36,5 +37,13 @@ class BaseGeneratorStrategy implements GeneratorStrategyInterface
     public function generate(ClassGenerator $classGenerator) : string
     {
         return $classGenerator->generate();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function classExists(string $proxyClassName, Configuration $configuration): bool
+    {
+        return class_exists($proxyClassName);
     }
 }

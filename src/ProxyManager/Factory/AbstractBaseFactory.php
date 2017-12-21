@@ -22,11 +22,13 @@ namespace ProxyManager\Factory;
 
 use ProxyManager\Configuration;
 use ProxyManager\Generator\ClassGenerator;
+use ProxyManager\GeneratorStrategy\FileWriterGeneratorStrategy;
 use ProxyManager\ProxyGenerator\ProxyGeneratorInterface;
 use ProxyManager\Signature\Exception\InvalidSignatureException;
 use ProxyManager\Signature\Exception\MissingSignatureException;
 use ProxyManager\Version;
 use ReflectionClass;
+use function Symfony\Component\VarDumper\Dumper\esc;
 
 /**
  * Base factory common logic
@@ -84,7 +86,9 @@ abstract class AbstractBaseFactory
             ->getClassNameInflector()
             ->getProxyClassName($className, $proxyParameters);
 
-        if (! class_exists($proxyClassName)) {
+        $strategy = $this->configuration->getGeneratorStrategy();
+ 
+        if (! $strategy->classExists($proxyClassName, $this->configuration)) {
             $this->generateProxyClass(
                 $proxyClassName,
                 $className,

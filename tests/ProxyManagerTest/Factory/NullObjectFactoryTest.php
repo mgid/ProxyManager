@@ -1,26 +1,10 @@
 <?php
-/*
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * This software consists of voluntary contributions made by many individuals
- * and is licensed under the MIT license.
- */
 
 declare(strict_types=1);
 
 namespace ProxyManagerTest\Factory;
 
-use PHPUnit_Framework_TestCase;
+use PHPUnit\Framework\TestCase;
 use ProxyManager\Autoloader\AutoloaderInterface;
 use ProxyManager\Configuration;
 use ProxyManager\Factory\NullObjectFactory;
@@ -41,7 +25,7 @@ use stdClass;
  *
  * @group Coverage
  */
-class NullObjectFactoryTest extends PHPUnit_Framework_TestCase
+class NullObjectFactoryTest extends TestCase
 {
     /**
      * @var \PHPUnit_Framework_MockObject_MockObject
@@ -102,6 +86,7 @@ class NullObjectFactoryTest extends PHPUnit_Framework_TestCase
     public function testWillSkipAutoGeneration() : void
     {
         $instance = new stdClass();
+        $generator      = $this->createMock(GeneratorStrategyInterface::class);
 
         $this
             ->inflector
@@ -110,7 +95,19 @@ class NullObjectFactoryTest extends PHPUnit_Framework_TestCase
             ->with('stdClass')
             ->will(self::returnValue(NullObjectMock::class));
 
+        $generator
+            ->expects(self::once())
+            ->method('classExists')
+            ->with(
+                NullObjectMock::class,
+                $this->config
+            )
+            ->willReturn(true);
+
+        $this->config->expects(self::any())->method('getGeneratorStrategy')->will(self::returnValue($generator));
+
         $factory    = new NullObjectFactory($this->config);
+        
         /* @var $proxy NullObjectMock */
         $proxy      = $factory->createProxy($instance);
 

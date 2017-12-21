@@ -1,26 +1,11 @@
 <?php
-/*
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * This software consists of voluntary contributions made by many individuals
- * and is licensed under the MIT license.
- */
 
 declare(strict_types=1);
 
 namespace ProxyManagerTest\Functional;
 
-use PHPUnit_Framework_TestCase;
+use PHPUnit\Framework\ExpectationFailedException;
+use PHPUnit\Framework\TestCase;
 use ProxyManager\Configuration;
 use ProxyManager\Exception\UnsupportedProxiedClassException;
 use ProxyManager\Factory\AccessInterceptorScopeLocalizerFactory;
@@ -53,7 +38,7 @@ use stdClass;
  * @group Functional
  * @coversNothing
  */
-class AccessInterceptorScopeLocalizerFunctionalTest extends PHPUnit_Framework_TestCase
+class AccessInterceptorScopeLocalizerFunctionalTest extends TestCase
 {
     /**
      * @dataProvider getProxyMethods
@@ -293,7 +278,12 @@ class AccessInterceptorScopeLocalizerFunctionalTest extends PHPUnit_Framework_Te
         $proxy->arrayProperty = ['tab' => 'taz'];
 
         self::assertSame(['tab' => 'taz'], $proxy->arrayProperty);
-        $this->assertProxySynchronized($instance, $proxy);
+        self::assertInstanceOf(AccessInterceptorInterface::class, $proxy);
+
+        if ($proxy instanceof AccessInterceptorInterface) {
+            // @TODO use intersection types when available - ref https://twitter.com/Ocramius/status/931252644190015489
+            $this->assertProxySynchronized($instance, $proxy);
+        }
     }
 
     /**
@@ -313,9 +303,17 @@ class AccessInterceptorScopeLocalizerFunctionalTest extends PHPUnit_Framework_Te
         $variable = 'foo';
 
         self::assertSame('property0', $proxy->property0);
-        $this->assertProxySynchronized($instance, $proxy);
+
+        self::assertInstanceOf(AccessInterceptorInterface::class, $proxy);
+
+        if ($proxy instanceof AccessInterceptorInterface) {
+            // @TODO use intersection types when available - ref https://twitter.com/Ocramius/status/931252644190015489
+            $this->assertProxySynchronized($instance, $proxy);
+        }
+
         self::assertSame('foo', $variable);
     }
+
 
     /**
      * Verifies that public properties references retrieved via `__get` modify in the object state
@@ -333,7 +331,14 @@ class AccessInterceptorScopeLocalizerFunctionalTest extends PHPUnit_Framework_Te
         $variable = 'foo';
 
         self::assertSame('foo', $proxy->property0);
-        $this->assertProxySynchronized($instance, $proxy);
+
+        self::assertInstanceOf(AccessInterceptorInterface::class, $proxy);
+
+        if ($proxy instanceof AccessInterceptorInterface) {
+            // @TODO use intersection types when available - ref https://twitter.com/Ocramius/status/931252644190015489
+            $this->assertProxySynchronized($instance, $proxy);
+        }
+
         self::assertSame('foo', $variable);
     }
 
@@ -365,10 +370,6 @@ class AccessInterceptorScopeLocalizerFunctionalTest extends PHPUnit_Framework_Te
 
     /**
      * Generates a proxy for the given class name, and retrieves its class name
-     *
-     * @param string $parentClassName
-     *
-     * @return string
      *
      * @throws UnsupportedProxiedClassException
      */
@@ -436,8 +437,6 @@ class AccessInterceptorScopeLocalizerFunctionalTest extends PHPUnit_Framework_Te
 
     /**
      * Generates proxies and instances with a public property to feed to the property accessor methods
-     *
-     * @return array
      */
     public function getPropertyAccessProxies() : array
     {
@@ -545,7 +544,7 @@ class AccessInterceptorScopeLocalizerFunctionalTest extends PHPUnit_Framework_Te
 
         self::assertSame(['a', 'b'], (new ClassWithDynamicArgumentsMethod())->dynamicArgumentsMethod('a', 'b'));
 
-        $this->expectException(\PHPUnit_Framework_ExpectationFailedException::class);
+        $this->expectException(ExpectationFailedException::class);
 
         self::assertSame(['a', 'b'], $object->dynamicArgumentsMethod('a', 'b'));
     }

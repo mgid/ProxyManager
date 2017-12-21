@@ -4,9 +4,8 @@ cache: false
 sudo: false
 
 php:
-  - 7.1
+  - 7.2
   - nightly
-  - hhvm
 
 env:
   matrix:
@@ -22,8 +21,8 @@ before_script:
   - sh .travis.install.sh
 
 script:
-  - ./vendor/bin/phpunit --disallow-test-output --report-useless-tests --coverage-clover ./clover.xml --group=Coverage
-  - ./vendor/bin/phpunit --disallow-test-output --report-useless-tests --exclude-group=Coverage
+  - ./vendor/bin/phpunit --disallow-test-output --coverage-clover ./clover.xml --group=Coverage
+  - ./vendor/bin/phpunit --disallow-test-output --exclude-group=Coverage
   - php -n ./vendor/bin/phpbench run --revs=100 --iterations=3 --warmup=1 --report=aggregate
   - echo "Running examples"
   - php examples/access-interceptor-scope-localizer.php
@@ -32,15 +31,14 @@ script:
   - php examples/smart-reference.php
   - php examples/virtual-proxy.php
   - ./vendor/bin/phpcs --standard=PSR2 ./src/ ./tests/
-  - ./vendor/bin/phpstan analyse -c phpstan.neon -l 5 src
+  - ./vendor/bin/phpstan analyse -c phpstan.neon -l 7 src
   - ./vendor/bin/phpstan analyse -c phpstan.tests.neon -l 4 tests
   - ./vendor/bin/humbug
 
 matrix:
   allow_failures:
-    - php: hhvm
     - php: nightly
 
 after_script:
   - sh .travis.coverage.sh
-  - ./vendor/bin/couscous travis-auto-deploy --php-version=7.0
+  - ./vendor/bin/couscous travis-auto-deploy --php-version=7.2

@@ -1,27 +1,11 @@
 <?php
-/*
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * This software consists of voluntary contributions made by many individuals
- * and is licensed under the MIT license.
- */
 
 declare(strict_types=1);
 
 namespace ProxyManagerTest\Functional;
 
 use PHPUnit_Framework_MockObject_MockObject as Mock;
-use PHPUnit_Framework_TestCase;
+use PHPUnit\Framework\TestCase;
 use ProxyManager\Generator\ClassGenerator;
 use ProxyManager\Generator\Util\UniqueIdentifierGenerator;
 use ProxyManager\GeneratorStrategy\EvaluatingGeneratorStrategy;
@@ -60,7 +44,7 @@ use stdClass;
  * @group Functional
  * @coversNothing
  */
-class LazyLoadingGhostFunctionalTest extends PHPUnit_Framework_TestCase
+class LazyLoadingGhostFunctionalTest extends TestCase
 {
     /**
      * @dataProvider getProxyInitializingMethods
@@ -726,8 +710,6 @@ class LazyLoadingGhostFunctionalTest extends PHPUnit_Framework_TestCase
      *
      * @param string  $parentClassName
      * @param mixed[] $proxyOptions
-     *
-     * @return string
      */
     private function generateProxy(string $parentClassName, array $proxyOptions = []) : string
     {
@@ -791,8 +773,6 @@ class LazyLoadingGhostFunctionalTest extends PHPUnit_Framework_TestCase
 
     /**
      * Generates a list of object | invoked method | parameters | expected result
-     *
-     * @return array
      */
     public function getProxyMethods() : array
     {
@@ -894,8 +874,6 @@ class LazyLoadingGhostFunctionalTest extends PHPUnit_Framework_TestCase
 
     /**
      * Generates a list of object | invoked method | parameters | expected result for methods DON'T cause lazy-loading
-     *
-     * @return array
      */
     public function getProxyNonInitializingMethods() : array
     {
@@ -1291,9 +1269,14 @@ class LazyLoadingGhostFunctionalTest extends PHPUnit_Framework_TestCase
 
         $friendObject = new OtherObjectAccessClass();
 
-        self::assertSame($privatePropertyValue, $friendObject->getPrivateProperty($proxy));
-        self::assertSame($protectedPropertyValue, $friendObject->getProtectedProperty($proxy));
-        self::assertSame($publicPropertyValue, $friendObject->getPublicProperty($proxy));
+        self::assertInstanceOf(OtherObjectAccessClass::class, $proxy);
+
+        if ($proxy instanceof OtherObjectAccessClass) {
+            // @TODO use intersection types when available - ref https://twitter.com/Ocramius/status/931252644190015489
+            self::assertSame($privatePropertyValue, $friendObject->getPrivateProperty($proxy));
+            self::assertSame($protectedPropertyValue, $friendObject->getProtectedProperty($proxy));
+            self::assertSame($publicPropertyValue, $friendObject->getPublicProperty($proxy));
+        }
     }
 
     public function testClonedSkippedPropertiesArePreserved() : void

@@ -1,26 +1,10 @@
 <?php
-/*
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * This software consists of voluntary contributions made by many individuals
- * and is licensed under the MIT license.
- */
 
 declare(strict_types=1);
 
 namespace ProxyManagerTest\Generator;
 
-use PHPUnit_Framework_TestCase;
+use PHPUnit\Framework\TestCase;
 use ProxyManager\Generator\MethodGenerator;
 use ProxyManagerTestAsset\BaseClass;
 use ProxyManagerTestAsset\ClassWithAbstractPublicMethod;
@@ -41,11 +25,11 @@ use Zend\Code\Reflection\MethodReflection;
  * @covers \ProxyManager\Generator\MethodGenerator
  * @group Coverage
  */
-class MethodGeneratorTest extends PHPUnit_Framework_TestCase
+class MethodGeneratorTest extends TestCase
 {
     public function testGeneratedMethodsAreAllConcrete() : void
     {
-        $methodGenerator = MethodGenerator::fromReflection(new MethodReflection(
+        $methodGenerator = MethodGenerator::fromReflectionWithoutBodyAndDocBlock(new MethodReflection(
             ClassWithAbstractPublicMethod::class,
             'publicAbstractMethod'
         ));
@@ -75,25 +59,37 @@ class MethodGeneratorTest extends PHPUnit_Framework_TestCase
      */
     public function testGenerateFromReflection() : void
     {
-        $method = MethodGenerator::fromReflection(new MethodReflection(__CLASS__, __FUNCTION__));
+        $method = MethodGenerator::fromReflectionWithoutBodyAndDocBlock(new MethodReflection(
+            __CLASS__,
+            __FUNCTION__
+        ));
 
         self::assertSame(__FUNCTION__, $method->getName());
         self::assertSame(MethodGenerator::VISIBILITY_PUBLIC, $method->getVisibility());
         self::assertFalse($method->isStatic());
-        self::assertSame('Verify that building from reflection works', $method->getDocBlock()->getShortDescription());
+        self::assertNull($method->getDocBlock(), 'The docblock is ignored');
+        self::assertNull($method->getBody(), 'The body is ignored');
+        self::assertNull($method->getSourceContent(), 'The source content ignored');
+        self::assertTrue($method->isSourceDirty(), 'Dirty because the source cannot just be re-used when generating');
 
-        $method = MethodGenerator::fromReflection(new MethodReflection(BaseClass::class, 'protectedMethod'));
+        $method = MethodGenerator::fromReflectionWithoutBodyAndDocBlock(new MethodReflection(
+            BaseClass::class,
+            'protectedMethod'
+        ));
 
         self::assertSame(MethodGenerator::VISIBILITY_PROTECTED, $method->getVisibility());
 
-        $method = MethodGenerator::fromReflection(new MethodReflection(BaseClass::class, 'privateMethod'));
+        $method = MethodGenerator::fromReflectionWithoutBodyAndDocBlock(new MethodReflection(
+            BaseClass::class,
+            'privateMethod'
+        ));
 
         self::assertSame(MethodGenerator::VISIBILITY_PRIVATE, $method->getVisibility());
     }
 
     public function testGeneratedParametersFromReflection() : void
     {
-        $method = MethodGenerator::fromReflection(new MethodReflection(
+        $method = MethodGenerator::fromReflectionWithoutBodyAndDocBlock(new MethodReflection(
             BaseClass::class,
             'publicTypeHintedMethod'
         ));
@@ -117,7 +113,7 @@ class MethodGeneratorTest extends PHPUnit_Framework_TestCase
      */
     public function testGenerateMethodWithScalarTypeHinting(string $methodName, string $type) : void
     {
-        $method = MethodGenerator::fromReflection(new MethodReflection(
+        $method = MethodGenerator::fromReflectionWithoutBodyAndDocBlock(new MethodReflection(
             ScalarTypeHintedClass::class,
             $methodName
         ));
@@ -145,7 +141,7 @@ class MethodGeneratorTest extends PHPUnit_Framework_TestCase
 
     public function testGenerateMethodWithVoidReturnTypeHinting() : void
     {
-        $method = MethodGenerator::fromReflection(new MethodReflection(
+        $method = MethodGenerator::fromReflectionWithoutBodyAndDocBlock(new MethodReflection(
             VoidMethodTypeHintedInterface::class,
             'returnVoid'
         ));
@@ -162,7 +158,7 @@ class MethodGeneratorTest extends PHPUnit_Framework_TestCase
      */
     public function testReturnTypeHintGeneration(string $methodName, string $expectedType) : void
     {
-        $method = MethodGenerator::fromReflection(new MethodReflection(
+        $method = MethodGenerator::fromReflectionWithoutBodyAndDocBlock(new MethodReflection(
             ReturnTypeHintedClass::class,
             $methodName
         ));
